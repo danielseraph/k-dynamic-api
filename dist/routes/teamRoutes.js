@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const teamController_1 = require("../controllers/teamController");
+const auth_1 = require("../middlewares/auth");
+const upload_1 = require("../middlewares/upload");
+const router = (0, express_1.Router)();
+router.get('/', teamController_1.getAll);
+router.post('/', auth_1.authenticateToken, upload_1.upload.single('image'), teamController_1.create);
+router.put('/:id', auth_1.authenticateToken, upload_1.upload.single('image'), teamController_1.update);
+router.delete('/:id', auth_1.authenticateToken, teamController_1.deleteMember);
+exports.default = router;

@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const equipmentController_1 = require("../controllers/equipmentController");
+const auth_1 = require("../middlewares/auth");
+const upload_1 = require("../middlewares/upload");
+const router = (0, express_1.Router)();
+router.get('/', equipmentController_1.getAll);
+router.post('/', auth_1.authenticateToken, upload_1.upload.single('image'), equipmentController_1.create);
+router.put('/:id', auth_1.authenticateToken, upload_1.upload.single('image'), equipmentController_1.update);
+router.delete('/:id', auth_1.authenticateToken, equipmentController_1.deleteEquipment);
+exports.default = router;
