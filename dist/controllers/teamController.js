@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteMember = exports.update = exports.create = exports.getAll = void 0;
 const db_1 = __importDefault(require("../db"));
+const cloudinary_1 = require("../utils/cloudinary");
 const getAll = async (req, res) => {
     try {
         const members = await db_1.default.teamMember.findMany({
@@ -30,7 +31,9 @@ const create = async (req, res) => {
         }
         // Single file upload via upload.single('image')
         const imageFile = req.file;
-        const imageUrl = imageFile ? `/uploads/${imageFile.filename}` : '/uploads/default-member.jpeg';
+        const imageUrl = imageFile
+            ? await (0, cloudinary_1.uploadToCloudinary)(imageFile, 'team')
+            : '/uploads/default-member.jpeg';
         // Parse responsibilities
         let responsibilitiesJson = '[]';
         if (responsibilities) {
@@ -80,7 +83,9 @@ const update = async (req, res) => {
             return res.status(400).json({ error: 'Category must be executive, management, or supervisory' });
         }
         const imageFile = req.file;
-        const imageUrl = imageFile ? `/uploads/${imageFile.filename}` : existingMember.image;
+        const imageUrl = imageFile
+            ? await (0, cloudinary_1.uploadToCloudinary)(imageFile, 'team')
+            : existingMember.image;
         let responsibilitiesJson = existingMember.responsibilities;
         if (responsibilities !== undefined) {
             try {

@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteEquipment = exports.update = exports.create = exports.getAll = void 0;
 const db_1 = __importDefault(require("../db"));
+const cloudinary_1 = require("../utils/cloudinary");
 const getAll = async (req, res) => {
     try {
         const equipment = await db_1.default.equipment.findMany({
@@ -29,7 +30,9 @@ const create = async (req, res) => {
             return res.status(400).json({ error: `Type must be one of: ${validTypes.join(', ')}` });
         }
         const imageFile = req.file;
-        const imageUrl = imageFile ? `/uploads/${imageFile.filename}` : '/uploads/default-equipment.jpeg';
+        const imageUrl = imageFile
+            ? await (0, cloudinary_1.uploadToCloudinary)(imageFile, 'equipment')
+            : '/uploads/default-equipment.jpeg';
         const parsedQuantity = quantity ? parseInt(quantity, 10) : 1;
         const item = await db_1.default.equipment.create({
             data: {
@@ -64,7 +67,9 @@ const update = async (req, res) => {
             return res.status(400).json({ error: 'Invalid equipment type' });
         }
         const imageFile = req.file;
-        const imageUrl = imageFile ? `/uploads/${imageFile.filename}` : existingItem.image;
+        const imageUrl = imageFile
+            ? await (0, cloudinary_1.uploadToCloudinary)(imageFile, 'equipment')
+            : existingItem.image;
         let parsedQuantity = existingItem.quantity;
         if (quantity !== undefined) {
             const parsed = parseInt(quantity, 10);

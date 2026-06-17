@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../db';
+import { uploadToCloudinary } from '../utils/cloudinary';
 
 export const getAll = async (req: Request, res: Response) => {
   try {
@@ -28,7 +29,9 @@ export const create = async (req: Request, res: Response) => {
 
     // Single file upload via upload.single('image')
     const imageFile = req.file;
-    const imageUrl = imageFile ? `/uploads/${imageFile.filename}` : '/uploads/default-member.jpeg';
+    const imageUrl = imageFile 
+      ? await uploadToCloudinary(imageFile, 'team') 
+      : '/uploads/default-member.jpeg';
 
     // Parse responsibilities
     let responsibilitiesJson = '[]';
@@ -82,7 +85,9 @@ export const update = async (req: Request, res: Response) => {
     }
 
     const imageFile = req.file;
-    const imageUrl = imageFile ? `/uploads/${imageFile.filename}` : existingMember.image;
+    const imageUrl = imageFile 
+      ? await uploadToCloudinary(imageFile, 'team') 
+      : existingMember.image;
 
     let responsibilitiesJson = existingMember.responsibilities;
     if (responsibilities !== undefined) {

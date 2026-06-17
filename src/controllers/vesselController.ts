@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../db';
+import { uploadToCloudinary } from '../utils/cloudinary';
 
 export const getAll = async (req: Request, res: Response) => {
   try {
@@ -59,11 +60,15 @@ export const create = async (req: Request, res: Response) => {
     
     // Process main image
     const imageFile = files?.['image']?.[0];
-    const imageUrl = imageFile ? `/uploads/${imageFile.filename}` : '/uploads/default-vessel.jpeg';
+    const imageUrl = imageFile 
+      ? await uploadToCloudinary(imageFile, 'vessels') 
+      : '/uploads/default-vessel.jpeg';
 
     // Process gallery
     const galleryFiles = files?.['gallery'] || [];
-    const galleryUrls = galleryFiles.map(f => `/uploads/${f.filename}`);
+    const galleryUrls = await Promise.all(
+      galleryFiles.map(f => uploadToCloudinary(f, 'vessels/gallery'))
+    );
 
     // Parse certifications
     let certificationsJson = '[]';
@@ -143,7 +148,9 @@ export const update = async (req: Request, res: Response) => {
     
     // Main image replacement
     const imageFile = files?.['image']?.[0];
-    const imageUrl = imageFile ? `/uploads/${imageFile.filename}` : existingVessel.image;
+    const imageUrl = imageFile 
+      ? await uploadToCloudinary(imageFile, 'vessels') 
+      : existingVessel.image;
 
     // Gallery replacement / updates
     let galleryUrls = JSON.parse(existingVessel.gallery);
@@ -151,7 +158,9 @@ export const update = async (req: Request, res: Response) => {
 
     if (galleryFiles && galleryFiles.length > 0) {
       // If new files uploaded, replace or append
-      galleryUrls = galleryFiles.map(f => `/uploads/${f.filename}`);
+      galleryUrls = await Promise.all(
+        galleryFiles.map(f => uploadToCloudinary(f, 'vessels/gallery'))
+      );
     } else if (gallery) {
       // If existing filenames list passed, keep them
       try {

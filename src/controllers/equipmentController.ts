@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../db';
+import { uploadToCloudinary } from '../utils/cloudinary';
 
 export const getAll = async (req: Request, res: Response) => {
   try {
@@ -27,7 +28,9 @@ export const create = async (req: Request, res: Response) => {
     }
 
     const imageFile = req.file;
-    const imageUrl = imageFile ? `/uploads/${imageFile.filename}` : '/uploads/default-equipment.jpeg';
+    const imageUrl = imageFile 
+      ? await uploadToCloudinary(imageFile, 'equipment') 
+      : '/uploads/default-equipment.jpeg';
 
     const parsedQuantity = quantity ? parseInt(quantity, 10) : 1;
 
@@ -68,7 +71,9 @@ export const update = async (req: Request, res: Response) => {
     }
 
     const imageFile = req.file;
-    const imageUrl = imageFile ? `/uploads/${imageFile.filename}` : existingItem.image;
+    const imageUrl = imageFile 
+      ? await uploadToCloudinary(imageFile, 'equipment') 
+      : existingItem.image;
 
     let parsedQuantity = existingItem.quantity;
     if (quantity !== undefined) {

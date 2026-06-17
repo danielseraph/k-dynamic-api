@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteVessel = exports.update = exports.create = exports.getOne = exports.getAll = void 0;
 const db_1 = __importDefault(require("../db"));
+const cloudinary_1 = require("../utils/cloudinary");
 const getAll = async (req, res) => {
     try {
         const vessels = await db_1.default.vessel.findMany({
@@ -44,10 +45,12 @@ const create = async (req, res) => {
         const files = req.files;
         // Process main image
         const imageFile = files?.['image']?.[0];
-        const imageUrl = imageFile ? `/uploads/${imageFile.filename}` : '/uploads/default-vessel.jpeg';
+        const imageUrl = imageFile
+            ? await (0, cloudinary_1.uploadToCloudinary)(imageFile, 'vessels')
+            : '/uploads/default-vessel.jpeg';
         // Process gallery
         const galleryFiles = files?.['gallery'] || [];
-        const galleryUrls = galleryFiles.map(f => `/uploads/${f.filename}`);
+        const galleryUrls = await Promise.all(galleryFiles.map(f => (0, cloudinary_1.uploadToCloudinary)(f, 'vessels/gallery')));
         // Parse certifications
         let certificationsJson = '[]';
         if (safetyCertifications) {
@@ -107,13 +110,15 @@ const update = async (req, res) => {
         const files = req.files;
         // Main image replacement
         const imageFile = files?.['image']?.[0];
-        const imageUrl = imageFile ? `/uploads/${imageFile.filename}` : existingVessel.image;
+        const imageUrl = imageFile
+            ? await (0, cloudinary_1.uploadToCloudinary)(imageFile, 'vessels')
+            : existingVessel.image;
         // Gallery replacement / updates
         let galleryUrls = JSON.parse(existingVessel.gallery);
         const galleryFiles = files?.['gallery'];
         if (galleryFiles && galleryFiles.length > 0) {
             // If new files uploaded, replace or append
-            galleryUrls = galleryFiles.map(f => `/uploads/${f.filename}`);
+            galleryUrls = await Promise.all(galleryFiles.map(f => (0, cloudinary_1.uploadToCloudinary)(f, 'vessels/gallery')));
         }
         else if (gallery) {
             // If existing filenames list passed, keep them
