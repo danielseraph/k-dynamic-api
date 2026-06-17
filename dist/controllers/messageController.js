@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteMessage = exports.updateStatus = exports.getAll = exports.create = void 0;
 const db_1 = __importDefault(require("../db"));
+const email_1 = require("../utils/email");
 const create = async (req, res) => {
     try {
         const { name, email, phone, company, serviceNeeded, message, messageType, quoteDetails } = req.body;
@@ -35,6 +36,10 @@ const create = async (req, res) => {
                 status: 'Unread',
                 quoteDetails: parsedQuoteDetails
             }
+        });
+        // Dispatch automated email notification asynchronously without blocking client HTTP response
+        (0, email_1.sendEmailNotification)(newMessage).catch(err => {
+            console.error('[SMTP Alert Failure] Failed to trigger email alert:', err);
         });
         return res.status(201).json(newMessage);
     }

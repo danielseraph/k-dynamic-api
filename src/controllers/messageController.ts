@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../db';
+import { sendEmailNotification } from '../utils/email';
 
 export const create = async (req: Request, res: Response) => {
   try {
@@ -34,6 +35,11 @@ export const create = async (req: Request, res: Response) => {
         status: 'Unread',
         quoteDetails: parsedQuoteDetails
       }
+    });
+
+    // Dispatch automated email notification asynchronously without blocking client HTTP response
+    sendEmailNotification(newMessage).catch(err => {
+      console.error('[SMTP Alert Failure] Failed to trigger email alert:', err);
     });
 
     return res.status(201).json(newMessage);
