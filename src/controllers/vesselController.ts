@@ -145,16 +145,17 @@ export const update = async (req: Request, res: Response) => {
     }
 
     const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
-    
+    const galleryFiles = files?.['gallery'];
+    let galleryUrls = existingVessel.gallery ? JSON.parse(existingVessel.gallery) : [];
+
     // Main image replacement
     const imageFile = files?.['image']?.[0];
-    const imageUrl = imageFile 
-      ? await uploadToCloudinary(imageFile, 'vessels') 
-      : existingVessel.image;
-
-    // Gallery replacement / updates
-    let galleryUrls = JSON.parse(existingVessel.gallery);
-    const galleryFiles = files?.['gallery'];
+    let imageUrl = existingVessel.image;
+    if (imageFile) {
+      imageUrl = await uploadToCloudinary(imageFile, 'vessels');
+    } else if (req.body.image) {
+      imageUrl = req.body.image;
+    }
 
     if (galleryFiles && galleryFiles.length > 0) {
       // If new files uploaded, replace or append

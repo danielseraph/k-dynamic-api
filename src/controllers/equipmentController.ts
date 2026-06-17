@@ -69,11 +69,13 @@ export const update = async (req: Request, res: Response) => {
     if (type && !['Fenders', 'Hoses', 'Anchors', 'Spill Response', 'Other'].includes(type)) {
       return res.status(400).json({ error: 'Invalid equipment type' });
     }
-
     const imageFile = req.file;
-    const imageUrl = imageFile 
-      ? await uploadToCloudinary(imageFile, 'equipment') 
-      : existingItem.image;
+    let imageUrl = existingItem.image;
+    if (imageFile) {
+      imageUrl = await uploadToCloudinary(imageFile, 'equipment');
+    } else if (req.body.image) {
+      imageUrl = req.body.image;
+    }
 
     let parsedQuantity = existingItem.quantity;
     if (quantity !== undefined) {

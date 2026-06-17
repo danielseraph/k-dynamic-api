@@ -83,9 +83,13 @@ const update = async (req, res) => {
             return res.status(400).json({ error: 'Category must be executive, management, or supervisory' });
         }
         const imageFile = req.file;
-        const imageUrl = imageFile
-            ? await (0, cloudinary_1.uploadToCloudinary)(imageFile, 'team')
-            : existingMember.image;
+        let imageUrl = existingMember.image;
+        if (imageFile) {
+            imageUrl = await (0, cloudinary_1.uploadToCloudinary)(imageFile, 'team');
+        }
+        else if (req.body.image) {
+            imageUrl = req.body.image;
+        }
         let responsibilitiesJson = existingMember.responsibilities;
         if (responsibilities !== undefined) {
             try {

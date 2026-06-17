@@ -67,9 +67,13 @@ const update = async (req, res) => {
             return res.status(400).json({ error: 'Invalid equipment type' });
         }
         const imageFile = req.file;
-        const imageUrl = imageFile
-            ? await (0, cloudinary_1.uploadToCloudinary)(imageFile, 'equipment')
-            : existingItem.image;
+        let imageUrl = existingItem.image;
+        if (imageFile) {
+            imageUrl = await (0, cloudinary_1.uploadToCloudinary)(imageFile, 'equipment');
+        }
+        else if (req.body.image) {
+            imageUrl = req.body.image;
+        }
         let parsedQuantity = existingItem.quantity;
         if (quantity !== undefined) {
             const parsed = parseInt(quantity, 10);
