@@ -12,15 +12,25 @@ const sendEmailNotification = async (message) => {
         console.warn('SMTP credentials missing. Skipping email notification.');
         return;
     }
-    const transporter = nodemailer_1.default.createTransport({
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.SMTP_PORT || '587', 10),
-        secure: process.env.SMTP_PORT === '465', // True for port 465, false for others
-        auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS
+    // Detect if Gmail is used to leverage Nodemailer's native Gmail service helper, which is more robust on cloud servers
+    const isGmail = process.env.SMTP_HOST === 'smtp.gmail.com' || (process.env.SMTP_USER && process.env.SMTP_USER.endsWith('@gmail.com'));
+    const transporter = nodemailer_1.default.createTransport(isGmail
+        ? {
+            service: 'gmail',
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
+            }
         }
-    });
+        : {
+            host: process.env.SMTP_HOST || 'smtp.gmail.com',
+            port: parseInt(process.env.SMTP_PORT || '587', 10),
+            secure: process.env.SMTP_PORT === '465',
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
+            }
+        });
     const recipient = process.env.NOTIFICATION_EMAIL || 'ktechdynamicltd@gmail.com';
     const mailOptions = {
         from: `"K-TECH DYNAMIC Alerts" <${process.env.SMTP_USER}>`,
