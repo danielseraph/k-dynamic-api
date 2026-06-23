@@ -6,7 +6,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendEmailNotification = void 0;
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const sendEmailNotification = async (message) => {
-    const { name, email, phone, company, serviceNeeded, message: msgText, messageType } = message;
+    const { name, email, phone, company, serviceNeeded, message: msgText, messageType, quoteDetails } = message;
+    const safeMessageType = typeof messageType === 'string' && messageType.trim() ? messageType.trim() : 'Contact';
+    const safeQuoteDetails = quoteDetails ? quoteDetails : 'N/A';
     // Check if SMTP credentials are configured
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
         console.warn('SMTP credentials missing. Skipping email notification.');
@@ -35,7 +37,8 @@ const sendEmailNotification = async (message) => {
     const mailOptions = {
         from: `"K-TECH DYNAMIC Alerts" <${process.env.SMTP_USER}>`,
         to: recipient,
-        subject: `[K-TECH ALERT] New ${messageType} Request from ${name}`,
+        replyTo: email,
+        subject: `[K-TECH ALERT] New ${safeMessageType} Request from ${name}`,
         html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
         <div style="background-color: #0d1b2a; padding: 20px; text-align: center; color: #ffffff;">
@@ -69,6 +72,10 @@ const sendEmailNotification = async (message) => {
             <tr>
               <td style="padding: 8px 0; font-weight: bold; border-bottom: 1px solid #f9f9f9; color: #555;">Service Needed:</td>
               <td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;">${serviceNeeded || 'N/A'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; font-weight: bold; border-bottom: 1px solid #f9f9f9; color: #555;">Quote Details:</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9; white-space: pre-wrap;">${safeQuoteDetails}</td>
             </tr>
           </table>
 

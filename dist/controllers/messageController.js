@@ -9,12 +9,10 @@ const email_1 = require("../utils/email");
 const create = async (req, res) => {
     try {
         const { name, email, phone, company, serviceNeeded, message, messageType, quoteDetails } = req.body;
-        if (!name || !email || !message || !messageType) {
+        if (!name || !email || !message || !messageType || typeof messageType !== 'string') {
             return res.status(400).json({ error: 'Name, email, message, and messageType are required' });
         }
-        if (!['Contact', 'Quote'].includes(messageType)) {
-            return res.status(400).json({ error: 'messageType must be Contact or Quote' });
-        }
+        const normalizedMessageType = messageType.trim() || 'Contact';
         let parsedQuoteDetails = null;
         if (quoteDetails) {
             try {
@@ -32,7 +30,7 @@ const create = async (req, res) => {
                 company: company || '',
                 serviceNeeded: serviceNeeded || '',
                 message,
-                messageType,
+                messageType: normalizedMessageType,
                 status: 'Unread',
                 quoteDetails: parsedQuoteDetails
             }
