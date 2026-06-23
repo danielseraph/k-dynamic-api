@@ -1,46 +1,57 @@
 import nodemailer from 'nodemailer';
 
+// Helper to strip any accidental double/single quotes or spaces copied into Render dashboard
+const cleanEnvVar = (val: string | undefined): string => {
+  if (!val) return '';
+  return val.trim().replace(/^["']|["']$/g, '');
+};
+
 export const sendEmailNotification = async (message: any) => {
-  const { name, email, phone, company, serviceNeeded, message: msgText, messageType, quoteDetails } = message;
-  const safeMessageType = typeof messageType === 'string' && messageType.trim() ? messageType.trim() : 'Contact';
-  const safeQuoteDetails = quoteDetails ? quoteDetails : 'N/A';
+  const { name, email, phone, company, serviceNeeded, message: msgText, messageType } = message;
+
+  const smtpUser = cleanEnvVar(process.env.SMTP_USER);
+  const smtpPass = cleanEnvVar(process.env.SMTP_PASS);
+  const smtpHost = cleanEnvVar(process.env.SMTP_HOST) || 'smtp.gmail.com';
+  const smtpPortStr = cleanEnvVar(process.env.SMTP_PORT) || '587';
+  const smtpPort = parseInt(smtpPortStr, 10);
+  const recipient = cleanEnvVar(process.env.NOTIFICATION_EMAIL) || 'ktechdynamicltd@gmail.com';
 
   // Check if SMTP credentials are configured
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.warn('SMTP credentials missing. Skipping email notification.');
+  if (!smtpUser || !smtpPass) {
+    console.warn('[SMTP Alert Warning] SMTP credentials missing (SMTP_USER or SMTP_PASS is empty). Skipping email notification.');
     return;
   }
 
+  console.log(`[SMTP Alert] Attempting to send email alert from "${smtpUser}" to "${recipient}" using host "${smtpHost}:${smtpPort}"...`);
+
   // Detect if Gmail is used to leverage Nodemailer's native Gmail service helper, which is more robust on cloud servers
-  const isGmail = process.env.SMTP_HOST === 'smtp.gmail.com' || (process.env.SMTP_USER && process.env.SMTP_USER.endsWith('@gmail.com'));
+  const isGmail = smtpHost === 'smtp.gmail.com' || smtpUser.endsWith('@gmail.com');
 
   const transporter = nodemailer.createTransport(
     isGmail
       ? {
           service: 'gmail',
           auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS
+            user: smtpUser,
+            pass: smtpPass
           }
         }
       : {
-          host: process.env.SMTP_HOST || 'smtp.gmail.com',
-          port: parseInt(process.env.SMTP_PORT || '587', 10),
-          secure: process.env.SMTP_PORT === '465',
+          host: smtpHost,
+          port: smtpPort,
+          secure: smtpPort === 465,
           auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS
+            user: smtpUser,
+            pass: smtpPass
           }
         }
   );
 
-  const recipient = process.env.NOTIFICATION_EMAIL || 'ktechdynamicltd@gmail.com';
-
   const mailOptions = {
-    from: `"K-TECH DYNAMIC Alerts" <${process.env.SMTP_USER}>`,
+    from: `"K-TECH DYNAMIC Alerts" <${smtpUser}>`,
     to: recipient,
     replyTo: email,
-    subject: `[K-TECH ALERT] New ${safeMessageType} Request from ${name}`,
+    subject: `[K-TECH ALERT] New ${messageType} Request from ${name}`,
     html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
         <div style="background-color: #0d1b2a; padding: 20px; text-align: center; color: #ffffff;">
@@ -75,10 +86,6 @@ export const sendEmailNotification = async (message: any) => {
               <td style="padding: 8px 0; font-weight: bold; border-bottom: 1px solid #f9f9f9; color: #555;">Service Needed:</td>
               <td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9;">${serviceNeeded || 'N/A'}</td>
             </tr>
-            <tr>
-              <td style="padding: 8px 0; font-weight: bold; border-bottom: 1px solid #f9f9f9; color: #555;">Quote Details:</td>
-              <td style="padding: 8px 0; border-bottom: 1px solid #f9f9f9; white-space: pre-wrap;">${safeQuoteDetails}</td>
-            </tr>
           </table>
 
           <div style="background-color: #f7f9fa; border-left: 4px solid #0d1b2a; padding: 15px; border-radius: 4px; margin-top: 10px;">
@@ -95,8 +102,8 @@ export const sendEmailNotification = async (message: any) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`[ALERT] Notification email successfully sent to ${recipient}`);
-  } catch (error) {
-    console.error('[ALERT] Failed to send notification email:', error);
+    console.log(`[SMTP Alert Success] Notification email successfully sent to ${recipient}`);
+  } catch (error: any) {
+    console.error('[SMTP Alert Error] Failed to send notification email:', error.message || error);
   }
 };
