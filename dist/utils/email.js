@@ -68,8 +68,9 @@ const sendEmailNotification = async (message) => {
   `;
     // 1. PRIMARY METHOD: Resend HTTP API (Bypasses Render's outbound SMTP blocks on port 465/587)
     const resendApiKey = cleanEnvVar(process.env.RESEND_API_KEY);
+    const senderEmail = cleanEnvVar(process.env.SENDER_EMAIL) || 'onboarding@resend.dev';
     if (resendApiKey) {
-        console.log(`[SMTP Alert] Resend API Key detected. Attempting to send email via HTTP API to "${recipient}"...`);
+        console.log(`[SMTP Alert] Resend API Key detected. Attempting to send email via HTTP API from "${senderEmail}" to "${recipient}"...`);
         try {
             const response = await fetch('https://api.resend.com/emails', {
                 method: 'POST',
@@ -78,7 +79,7 @@ const sendEmailNotification = async (message) => {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    from: 'K-TECH Alerts <onboarding@resend.dev>', // Resend's default sandbox domain
+                    from: `K-TECH Alerts <${senderEmail}>`,
                     to: recipient,
                     reply_to: email,
                     subject: `[K-TECH ALERT] New ${messageType} Request from ${name}`,
