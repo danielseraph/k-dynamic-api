@@ -69,6 +69,8 @@ const sendEmailNotification = async (message) => {
     // 1. PRIMARY METHOD: Resend HTTP API (Bypasses Render's outbound SMTP blocks on port 465/587)
     const resendApiKey = cleanEnvVar(process.env.RESEND_API_KEY);
     const senderEmail = cleanEnvVar(process.env.SENDER_EMAIL) || 'onboarding@resend.dev';
+    console.log(`[Diagnostic] Detected environment keys:`, Object.keys(process.env).filter(k => k.includes('RESEND') || k.includes('SMTP') || k.includes('PORT') || k.includes('EMAIL')));
+    console.log(`[Diagnostic] RESEND_API_KEY value length is: ${resendApiKey.length} characters.`);
     if (resendApiKey) {
         console.log(`[SMTP Alert] Resend API Key detected. Attempting to send email via HTTP API from "${senderEmail}" to "${recipient}"...`);
         try {
