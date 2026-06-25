@@ -1,5 +1,3 @@
-import nodemailer from 'nodemailer';
-
 // Helper to strip any accidental double/single quotes or spaces copied into Render dashboard
 const cleanEnvVar = (val: string | undefined): string => {
   if (!val) return '';
@@ -9,14 +7,14 @@ const cleanEnvVar = (val: string | undefined): string => {
 export const sendEmailNotification = async (message: any) => {
   const { name, email, phone, company, serviceNeeded, message: msgText, messageType } = message;
 
-  const smtpUser = cleanEnvVar(process.env.SMTP_USER);
-  const smtpPass = cleanEnvVar(process.env.SMTP_PASS);
-  const smtpHost = cleanEnvVar(process.env.SMTP_HOST) || 'smtp.gmail.com';
-  const smtpPortStr = cleanEnvVar(process.env.SMTP_PORT) || '587';
-  const smtpPort = parseInt(smtpPortStr, 10);
   const recipient = cleanEnvVar(process.env.NOTIFICATION_EMAIL) || 'ktechdynamicltd@gmail.com';
+  const resendApiKey = cleanEnvVar(process.env.RESEND_API_KEY);
+  const senderEmail = cleanEnvVar(process.env.SENDER_EMAIL) || 'onboarding@resend.dev';
 
-  const isGmail = smtpHost === 'smtp.gmail.com' || smtpUser.endsWith('@gmail.com');
+  if (!resendApiKey) {
+    console.warn('[Resend Alert Warning] RESEND_API_KEY is not configured. Skipping email notification.');
+    return;
+  }
 
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
@@ -65,82 +63,30 @@ export const sendEmailNotification = async (message: any) => {
     </div>
   `;
 
-  // 1. PRIMARY METHOD: Resend HTTP API (Bypasses Render's outbound SMTP blocks on port 465/587)
-  const resendApiKey = cleanEnvVar(process.env.RESEND_API_KEY);
-  const senderEmail = cleanEnvVar(process.env.SENDER_EMAIL) || 'onboarding@resend.dev';
-
-  if (resendApiKey) {
-    console.log(`[SMTP Alert] Resend API Key detected. Attempting to send email via HTTP API from "${senderEmail}" to "${recipient}"...`);
-    try {
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          from: `K-TECH Alerts <${senderEmail}>`,
-          to: recipient,
-          reply_to: email,
-          subject: `[K-TECH ALERT] New ${messageType} Request from ${name}`,
-          html: htmlContent
-        })
-      });
-
-      const resData = await response.json() as any;
-      if (response.ok) {
-        console.log(`[SMTP Alert Success] Notification email successfully sent via Resend HTTP API (ID: ${resData.id})`);
-        return;
-      } else {
-        throw new Error(resData.message || JSON.stringify(resData));
-      }
-    } catch (error: any) {
-      console.error('[SMTP Alert Error] Failed to send email via Resend HTTP API:', error.message || error);
-      console.log('[SMTP Alert] Falling back to Nodemailer SMTP...');
-    }
-  }
-
-  // 2. FALLBACK METHOD: Nodemailer SMTP
-  // Check if SMTP credentials are configured
-  if (!smtpUser || !smtpPass) {
-    console.warn('[SMTP Alert Warning] SMTP credentials missing (SMTP_USER or SMTP_PASS is empty). Skipping email notification.');
-    return;
-  }
-
-  console.log(`[SMTP Alert] Attempting to send email alert from "${smtpUser}" to "${recipient}" using host "${smtpHost}:${smtpPort}"...`);
-
-  const transporter = nodemailer.createTransport(
-    isGmail
-      ? {
-          service: 'gmail',
-          auth: {
-            user: smtpUser,
-            pass: smtpPass
-          }
-        }
-      : {
-          host: smtpHost,
-          port: smtpPort,
-          secure: smtpPort === 465,
-          auth: {
-            user: smtpUser,
-            pass: smtpPass
-          }
-        }
-  );
-
-  const mailOptions = {
-    from: `"K-TECH DYNAMIC Alerts" <${smtpUser}>`,
-    to: recipient,
-    replyTo: email,
-    subject: `[K-TECH ALERT] New ${messageType} Request from ${name}`,
-    html: htmlContent
-  };
-
+  console.log(`[SMTP Alert] Attempting to send email alert from "${senderEmail}" to "${recipient}"...`);
   try {
-    await transporter.sendMail(mailOptions);
-    console.log(`[SMTP Alert Success] Notification email successfully sent to ${recipient}`);
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: `K-TECH Alerts <${senderEmail}>`,
+        to: recipient,
+        reply_to: email,
+        subject: `[K-TECH ALERT] New ${messageType} Request from ${name}`,
+        html: htmlContent
+      })
+    });
+
+    const resData = await response.json() as any;
+    if (response.ok) {
+      console.log(`[SMTP Alert Success] Notification email successfully sent via Resend HTTP API (ID: ${resData.id})`);
+    } else {
+      throw new Error(resData.message || JSON.stringify(resData));
+    }
   } catch (error: any) {
-    console.error('[SMTP Alert Error] Failed to send notification email:', error.message || error);
+    console.error('[SMTP Alert Error] Failed to send email via Resend HTTP API:', error.message || error);
   }
 };
